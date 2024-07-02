@@ -21,11 +21,11 @@ const (
 )
 
 type BrasilAPIGateway struct {
-	Client http.Client
+	client *http.Client
 }
 
-func NewBrasilAPIGateway(client http.Client) *BrasilAPIGateway {
-	return &BrasilAPIGateway{Client: client}
+func NewBrasilAPIGateway(c *http.Client) *BrasilAPIGateway {
+	return &BrasilAPIGateway{client: c}
 }
 
 func (gtw *BrasilAPIGateway) GetCEP(cep string) (*GetCEPResponse, error) {
