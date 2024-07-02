@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-type GetCEPResponse struct {
+type GetBrAPICEPResponse struct {
 	Cep          string `json:"cep"`
 	State        string `json:"state"`
 	City         string `json:"city"`
@@ -16,9 +16,7 @@ type GetCEPResponse struct {
 	OpenCEP      string `json:"open-cep"`
 }
 
-const (
-	url = "https://brasilapi.com.br/api/cep/v1/%s"
-)
+const brAPIUrl = "https://brasilapi.com.br/api/cep/v1/%s"
 
 type BrasilAPIGateway struct {
 	client *http.Client
@@ -28,8 +26,8 @@ func NewBrasilAPIGateway(c *http.Client) *BrasilAPIGateway {
 	return &BrasilAPIGateway{client: c}
 }
 
-func (gtw *BrasilAPIGateway) GetCEP(cep string) (*GetCEPResponse, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf(url, cep), nil)
+func (gtw *BrasilAPIGateway) GetBrAPI(cep string) (*GetBrAPICEPResponse, error) {
+	req, err := http.NewRequest("GET", fmt.Sprintf(brAPIUrl, cep), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +43,7 @@ func (gtw *BrasilAPIGateway) GetCEP(cep string) (*GetCEPResponse, error) {
 		return nil, err
 	}
 
-	var response *GetCEPResponse
+	var response *GetBrAPICEPResponse
 	err = json.Unmarshal(body, &response)
 	if err != nil {
 		return nil, err
