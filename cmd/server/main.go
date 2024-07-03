@@ -1,16 +1,18 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-	"net/http"
+	"cep-api/internal/api"
+	"cep-api/internal/handler"
+	"cep-api/internal/http/gin"
+	"log"
 )
 
 func main() {
-	r := gin.Default()
-	r.GET("/ping", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "pong",
-		})
-	})
-	_ = r.Run()
+	h := handler.NewCEPHandler()
+	g := gin.Handlers(h)
+
+	err := api.Start("8080", g)
+	if err != nil {
+		log.Fatalf("error running api: %s", err)
+	}
 }
