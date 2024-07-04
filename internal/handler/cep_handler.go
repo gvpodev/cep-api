@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"cep-api/internal/model"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,47 +9,6 @@ import (
 	"net/http"
 	"time"
 )
-
-type GetBrAPICEPResponse struct {
-	CEP          string `json:"cep"`
-	State        string `json:"state"`
-	City         string `json:"city"`
-	Neighborhood string `json:"neighborhood"`
-	Street       string `json:"street"`
-	OpenCEP      string `json:"open-cep"`
-}
-
-type GetViaCEPResponse struct {
-	CEP          string `json:"cep"`
-	Street       string `json:"logradouro"`
-	Number       string `json:"number"`
-	Unit         string `json:"unit"`
-	Neighborhood string `json:"bairro"`
-	City         string `json:"localidade"`
-	State        string `json:"uf"`
-	IBGE         string `json:"ibge"`
-	GIA          string `json:"gia"`
-	DDD          string `json:"ddd"`
-	Siafi        string `json:"siafi"`
-}
-
-type CEPResponse struct {
-	CEP          string
-	Street       string
-	Neighborhood string
-	City         string
-	State        string
-}
-
-type Result struct {
-	Data *CEPResponse
-	Fail *ErrResult
-}
-
-type ErrResult struct {
-	Err        error
-	StatusCode int
-}
 
 type CEPHandler struct {
 }
@@ -62,20 +22,20 @@ const (
 	viaCEPUrl = "https://viacep.com.br/ws/%s/json/"
 )
 
-func (h *CEPHandler) GetCEP(cep string) *Result {
-	brapiCh := make(chan *GetBrAPICEPResponse)
-	viacepCh := make(chan *GetViaCEPResponse)
-	errCh := make(chan *ErrResult)
+func (h *CEPHandler) GetCEP(cep string) *model.Result {
+	brapiCh := make(chan *model.GetBrAPICEPResponse)
+	viacepCh := make(chan *model.GetViaCEPResponse)
+	errCh := make(chan *model.ErrResult)
 
 	go func() {
 		for {
-			brapiCh <- doRequest[GetBrAPICEPResponse](errCh, brAPIUrl, cep)
+			brapiCh <- doRequest[model.GetBrAPICEPResponse](errCh, brAPIUrl, cep)
 		}
 	}()
 
 	go func() {
 		for {
-			viacepCh <- doRequest[GetViaCEPResponse](errCh, viaCEPUrl, cep)
+			viacepCh <- doRequest[model.GetViaCEPResponse](errCh, viaCEPUrl, cep)
 		}
 	}()
 
@@ -83,14 +43,14 @@ func (h *CEPHandler) GetCEP(cep string) *Result {
 		select {
 		case err := <-errCh:
 			fmt.Println("ERROR")
-			return &Result{
+			return &model.Result{
 				Data: nil,
 				Fail: err,
 			}
 		case msg := <-brapiCh:
 			fmt.Println("BR API")
-			return &Result{
-				Data: &CEPResponse{
+			return &model.Result{
+				Data: &model.CEPResponse{
 					CEP:          msg.CEP,
 					Street:       msg.Street,
 					Neighborhood: msg.Neighborhood,
@@ -101,8 +61,8 @@ func (h *CEPHandler) GetCEP(cep string) *Result {
 			}
 		case msg := <-viacepCh:
 			fmt.Println("VIA CEP")
-			return &Result{
-				Data: &CEPResponse{
+			return &model.Result{
+				Data: &model.CEPResponse{
 					CEP:          msg.CEP,
 					Street:       msg.Street,
 					Neighborhood: msg.Neighborhood,
@@ -112,9 +72,9 @@ func (h *CEPHandler) GetCEP(cep string) *Result {
 				Fail: nil,
 			}
 		case <-time.After(1 * time.Second):
-			return &Result{
+			return &model.Result{
 				Data: nil,
-				Fail: &ErrResult{
+				Fail: &model.ErrResult{
 					Err:        http.ErrHandlerTimeout,
 					StatusCode: http.StatusGatewayTimeout,
 				},
@@ -123,10 +83,10 @@ func (h *CEPHandler) GetCEP(cep string) *Result {
 	}
 }
 
-func doRequest[T any](done chan *ErrResult, url string, cep string) *T {
+func doRequest[T any](done chan *model.ErrResult, url string, cep string) *T {
 	req, err := http.NewRequest("GET", fmt.Sprintf(url, cep), nil)
 	if err != nil {
-		done <- &ErrResult{
+		done <- &model.ErrResult{
 			Err:        err,
 			StatusCode: http.StatusInternalServerError,
 		}
@@ -136,14 +96,14 @@ func doRequest[T any](done chan *ErrResult, url string, cep string) *T {
 	res, err := http.DefaultClient.Do(req)
 	defer res.Body.Close()
 	if err != nil {
-		done <- &ErrResult{
+		done <- &model.ErrResult{
 			Err:        err,
 			StatusCode: http.StatusInternalServerError,
 		}
 		return nil
 	}
 	if res.StatusCode != http.StatusOK {
-		done <- &ErrResult{
+		done <- &model.ErrResult{
 			Err:        errors.New(fmt.Sprintf("Client error: %d", res.StatusCode)),
 			StatusCode: res.StatusCode,
 		}
@@ -152,7 +112,7 @@ func doRequest[T any](done chan *ErrResult, url string, cep string) *T {
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {
-		done <- &ErrResult{
+		done <- &model.ErrResult{
 			Err:        err,
 			StatusCode: http.StatusInternalServerError,
 		}
@@ -162,7 +122,7 @@ func doRequest[T any](done chan *ErrResult, url string, cep string) *T {
 	var response *T
 	err = json.Unmarshal(body, &response)
 	if err != nil {
-		done <- &ErrResult{
+		done <- &model.ErrResult{
 			Err:        err,
 			StatusCode: http.StatusInternalServerError,
 		}
