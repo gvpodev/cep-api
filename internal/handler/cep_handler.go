@@ -129,5 +129,7 @@ func doRequest[T any](done chan *model.ErrResult, url string, cep string) *T {
 		return nil
 	}
 
+	fmt.Printf("%+v\n", response)
+
 	return response
 }
