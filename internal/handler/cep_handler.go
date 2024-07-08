@@ -18,8 +18,9 @@ func NewCEPHandler() *CEPHandler {
 }
 
 const (
-	brAPIUrl  = "https://brasilapi.com.br/api/cep/v1/%s"
-	viaCEPUrl = "https://viacep.com.br/ws/%s/json/"
+	brAPIUrl          = "https://brasilapi.com.br/api/cep/v1/%s"
+	viaCEPUrl         = "https://viacep.com.br/ws/%s/json/"
+	responseCommonMsg = "Getting response from: %s"
 )
 
 func (h *CEPHandler) GetCEP(cep string) *model.Result {
@@ -42,13 +43,13 @@ func (h *CEPHandler) GetCEP(cep string) *model.Result {
 	for {
 		select {
 		case err := <-errCh:
-			fmt.Println("ERROR")
+			fmt.Println(fmt.Sprintf("Unexpect error: %v", err))
 			return &model.Result{
 				Data: nil,
 				Fail: err,
 			}
 		case msg := <-brapiCh:
-			fmt.Println("BR API")
+			fmt.Println(fmt.Sprintf(responseCommonMsg, "Brasil API"))
 			return &model.Result{
 				Data: &model.CEPResponse{
 					CEP:          msg.CEP,
@@ -60,7 +61,7 @@ func (h *CEPHandler) GetCEP(cep string) *model.Result {
 				Fail: nil,
 			}
 		case msg := <-viacepCh:
-			fmt.Println("VIA CEP")
+			fmt.Println(fmt.Sprintf(responseCommonMsg, "Brasil API"))
 			return &model.Result{
 				Data: &model.CEPResponse{
 					CEP:          msg.CEP,
@@ -72,6 +73,7 @@ func (h *CEPHandler) GetCEP(cep string) *model.Result {
 				Fail: nil,
 			}
 		case <-time.After(1 * time.Second):
+			fmt.Println("Timeout error")
 			return &model.Result{
 				Data: nil,
 				Fail: &model.ErrResult{
