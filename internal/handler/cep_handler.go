@@ -72,7 +72,7 @@ func (h *CEPHandler) GetCEP(cep string) *model.Result {
 				},
 				Fail: nil,
 			}
-		case <-time.After(1 * time.Second):
+		case <-time.After(2 * time.Second):
 			fmt.Println("Timeout error")
 			return &model.Result{
 				Data: nil,
